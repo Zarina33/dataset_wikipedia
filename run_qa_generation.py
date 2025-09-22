@@ -14,7 +14,7 @@ def main():
     
     # Настройки
     csv_file = "kyrgyz_wikipedia_data.csv"
-    output_file = "kyrgyz_wikipedia_qa_dataset.json"
+    output_file = "kyrgyz_wikipedia_qa_dataset_old.json"
     
     # Рекомендуемые параметры для начала
     start_from = 0

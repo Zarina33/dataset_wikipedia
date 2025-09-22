@@ -55,22 +55,46 @@ class WikipediaQAGenerator:
         cleaned_text = text.strip().replace('"', '').replace('\n', ' ')
         
         # Ограничиваем длину текста для обработки
-        if len(cleaned_text) > 3000:
-            cleaned_text = cleaned_text[:3000] + "..."
-        
-        prompt = f"""На основе данного текста создай один качественный вопрос и подробный ответ на кыргызском языке.
+        if len(cleaned_text) > 5000:
+            cleaned_text = cleaned_text[:5000] + "..."
 
-Текст: {cleaned_text}
+        prompt = f"""Generate a natural question-answer pair in Kyrgyz language for training data collection.
 
-Требования:
-1. Вопрос должен быть содержательным и проверять понимание основной информации из текста
-2. Ответ должен быть полным и точным, основанным только на информации из данного текста
-3. Используй только кыргызский язык
-4. Не добавляй дополнительную информацию, которой нет в тексте
+        Text: {cleaned_text}
 
-Формат ответа:
-Суроо: [твой вопрос]
-Жооп: [твой ответ]"""
+        Instructions:
+        1. Analyze the content and create a broad, contextual question about the main topic:
+           - Focus on the SUBJECT/THEME rather than specific objects ("this book", "this document")
+           - Ask about general concepts, processes, or categories mentioned
+           - Avoid questions that assume specific context unknown to the reader
+
+        2. Question generation logic:
+           - If content lists items → "What are the main [category] in [field/area]?"
+           - If content explains process → "How does [process] work?"
+           - If content describes concept → "What is [concept]?"
+           - If content gives overview → "What can you tell about [topic area]?"
+
+        3. Answer requirements:
+           - Transform the original text into a natural response
+           - Remove any references to specific documents/sources
+           - Make minimal grammatical corrections only
+           - Present information as general knowledge, not as "this text says"
+
+        4. Language requirements:
+           - Use only Kyrgyz language
+           - Make both question and answer sound completely natural
+           - Never reference source ("бул китепте", "документте", "тексте")
+           - Ensure proper Kyrgyz grammar and sentence flow
+
+        5. Example transformations:
+           - Bad: "Бул китепте кандай ырчылар бар?" 
+           - Good: "Кыргызстандын белгилүү композиторлору жана ырчылары кимдер?"
+
+        Return response in strict JSON format:
+        {{
+            "question": "your natural question here",
+            "answer": "your comprehensive answer here"
+        }}"""
 
         try:
             payload = {
@@ -78,16 +102,16 @@ class WikipediaQAGenerator:
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                    "temperature": 0.7,
+                    "temperature": 0.1,
                     "top_p": 0.9,
-                    "max_tokens": 1000
+                    "max_tokens": 8000
                 }
             }
             
             response = self.session.post(
                 f"{self.ollama_url}/api/generate",
                 json=payload,
-                timeout=120
+                timeout=300
             )
             
             if response.status_code == 200:
@@ -112,8 +136,28 @@ class WikipediaQAGenerator:
             return None
     
     def parse_qa_response(self, response_text: str) -> Optional[Dict[str, str]]:
-        """Парсинг ответа модели для извлечения вопроса и ответа"""
+        """Парсинг JSON ответа модели для извлечения вопроса и ответа"""
         try:
+            # Очистка ответа от возможных лишних символов
+            cleaned_response = response_text.strip()
+            
+            # Попытка найти JSON в ответе
+            json_start = cleaned_response.find('{')
+            json_end = cleaned_response.rfind('}') + 1
+            
+            if json_start != -1 and json_end > json_start:
+                json_str = cleaned_response[json_start:json_end]
+                try:
+                    qa_data = json.loads(json_str)
+                    if 'question' in qa_data and 'answer' in qa_data:
+                        return {
+                            "question": qa_data['question'].strip(),
+                            "answer": qa_data['answer'].strip()
+                        }
+                except json.JSONDecodeError:
+                    pass
+            
+            # Fallback: попытка парсинга старого формата (на случай если модель не следует новому формату)
             lines = response_text.split('\n')
             question = None
             answer = None

@@ -1,0 +1,27 @@
+{
+  "basic": {
+    "total_records": 30650,
+    "unique_ids": null,
+    "duplicate_ids": null
+  },
+  "dialogs": {
+    "avg_length": 2,
+    "median_length": 2.0,
+    "max_length": 2,
+    "min_length": 2,
+    "total_user_messages": 30650,
+    "total_assistant_messages": 30650
+  },
+  "text_content": {
+    "total_chars": 17885215,
+    "total_words": 2229983,
+    "code_blocks": 0,
+    "math_expressions": 1,
+    "estimated_tokens": 4471303
+  },
+  "metadata": {
+    "analysis_date": "2025-09-22 08:28:39",
+    "source_file": "/home/zarina/Рабочий стол/data_gemma/merged_array.json",
+    "file_size_bytes": 35976819
+  }
+}
